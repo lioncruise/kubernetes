@@ -44,11 +44,9 @@ func main() {
 		hk.AddServer(kubelet)
 	}
 	hk.AddServer(NewKubeProxy())
-	hk.AddServer(NewKubeAggregator())
 
-	//Federation servers
-	hk.AddServer(NewFederationAPIServer())
-	hk.AddServer(NewFederationCMServer())
+	// Alpha servers
+	hk.AddAlphaServer(NewCloudControllerManager())
 
 	hk.RunToExit(os.Args)
 }

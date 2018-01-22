@@ -17,13 +17,12 @@ go_library(
     ],
     importpath = "k8s.io/kubernetes/pkg/registry/core/service",
     deps = [
-        "//pkg/api:go_default_library",
-        "//pkg/api/helper:go_default_library",
         "//pkg/api/legacyscheme:go_default_library",
         "//pkg/api/service:go_default_library",
-        "//pkg/api/validation:go_default_library",
+        "//pkg/apis/core:go_default_library",
+        "//pkg/apis/core/helper:go_default_library",
+        "//pkg/apis/core/validation:go_default_library",
         "//pkg/capabilities:go_default_library",
-        "//pkg/features:go_default_library",
         "//pkg/registry/core/endpoint:go_default_library",
         "//pkg/registry/core/service/ipallocator:go_default_library",
         "//pkg/registry/core/service/portallocator:go_default_library",
@@ -40,7 +39,6 @@ go_library(
         "//vendor/k8s.io/apiserver/pkg/endpoints/request:go_default_library",
         "//vendor/k8s.io/apiserver/pkg/registry/rest:go_default_library",
         "//vendor/k8s.io/apiserver/pkg/storage/names:go_default_library",
-        "//vendor/k8s.io/apiserver/pkg/util/feature:go_default_library",
     ],
 )
 
@@ -50,13 +48,12 @@ go_test(
         "rest_test.go",
         "strategy_test.go",
     ],
+    embed = [":go_default_library"],
     importpath = "k8s.io/kubernetes/pkg/registry/core/service",
-    library = ":go_default_library",
     deps = [
-        "//pkg/api:go_default_library",
-        "//pkg/api/helper:go_default_library",
         "//pkg/api/service:go_default_library",
-        "//pkg/features:go_default_library",
+        "//pkg/apis/core:go_default_library",
+        "//pkg/apis/core/helper:go_default_library",
         "//pkg/registry/core/service/ipallocator:go_default_library",
         "//pkg/registry/core/service/portallocator:go_default_library",
         "//pkg/registry/registrytest:go_default_library",
@@ -69,7 +66,6 @@ go_test(
         "//vendor/k8s.io/apimachinery/pkg/util/rand:go_default_library",
         "//vendor/k8s.io/apiserver/pkg/endpoints/request:go_default_library",
         "//vendor/k8s.io/apiserver/pkg/registry/rest:go_default_library",
-        "//vendor/k8s.io/apiserver/pkg/util/feature:go_default_library",
     ],
 )
 

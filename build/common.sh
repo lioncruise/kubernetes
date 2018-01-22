@@ -85,7 +85,7 @@ readonly KUBE_CONTAINER_RSYNC_PORT=8730
 #
 # $1 - server architecture
 kube::build::get_docker_wrapped_binaries() {
-  debian_iptables_version=v8
+  debian_iptables_version=v10
   ### If you change any of these lists, please also update DOCKERIZED_BINARIES
   ### in build/BUILD.
   case $1 in
@@ -451,8 +451,8 @@ function kube::build::build_image() {
 
   cp /etc/localtime "${LOCAL_OUTPUT_BUILD_CONTEXT}/"
 
-  cp build/build-image/Dockerfile "${LOCAL_OUTPUT_BUILD_CONTEXT}/Dockerfile"
-  cp build/build-image/rsyncd.sh "${LOCAL_OUTPUT_BUILD_CONTEXT}/"
+  cp ${KUBE_ROOT}/build/build-image/Dockerfile "${LOCAL_OUTPUT_BUILD_CONTEXT}/Dockerfile"
+  cp ${KUBE_ROOT}/build/build-image/rsyncd.sh "${LOCAL_OUTPUT_BUILD_CONTEXT}/"
   dd if=/dev/urandom bs=512 count=1 2>/dev/null | LC_ALL=C tr -dc 'A-Za-z0-9' | dd bs=32 count=1 2>/dev/null > "${LOCAL_OUTPUT_BUILD_CONTEXT}/rsyncd.password"
   chmod go= "${LOCAL_OUTPUT_BUILD_CONTEXT}/rsyncd.password"
 
@@ -720,7 +720,7 @@ function kube::build::sync_to_container() {
   # necessary.
   kube::build::rsync \
     --delete \
-    --filter='H /.git/' \
+    --filter='H /.git' \
     --filter='- /.make/' \
     --filter='- /_tmp/' \
     --filter='- /_output/' \

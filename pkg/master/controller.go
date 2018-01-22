@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	"k8s.io/kubernetes/pkg/api"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/master/reconcilers"
 	"k8s.io/kubernetes/pkg/registry/core/rangeallocation"
@@ -48,6 +48,7 @@ const kubernetesServiceName = "kubernetes"
 type Controller struct {
 	ServiceClient   coreclient.ServicesGetter
 	NamespaceClient coreclient.NamespacesGetter
+	EventClient     coreclient.EventsGetter
 
 	ServiceClusterIPRegistry rangeallocation.RangeRegistry
 	ServiceClusterIPInterval time.Duration
@@ -77,10 +78,11 @@ type Controller struct {
 }
 
 // NewBootstrapController returns a controller for watching the core capabilities of the master
-func (c *completedConfig) NewBootstrapController(legacyRESTStorage corerest.LegacyRESTStorage, serviceClient coreclient.ServicesGetter, nsClient coreclient.NamespacesGetter) *Controller {
+func (c *completedConfig) NewBootstrapController(legacyRESTStorage corerest.LegacyRESTStorage, serviceClient coreclient.ServicesGetter, nsClient coreclient.NamespacesGetter, eventClient coreclient.EventsGetter) *Controller {
 	return &Controller{
 		ServiceClient:   serviceClient,
 		NamespaceClient: nsClient,
+		EventClient:     eventClient,
 
 		EndpointReconciler: c.ExtraConfig.EndpointReconcilerConfig.Reconciler,
 		EndpointInterval:   c.ExtraConfig.EndpointReconcilerConfig.Interval,
@@ -124,8 +126,8 @@ func (c *Controller) Start() {
 		return
 	}
 
-	repairClusterIPs := servicecontroller.NewRepair(c.ServiceClusterIPInterval, c.ServiceClient, &c.ServiceClusterIPRange, c.ServiceClusterIPRegistry)
-	repairNodePorts := portallocatorcontroller.NewRepair(c.ServiceNodePortInterval, c.ServiceClient, c.ServiceNodePortRange, c.ServiceNodePortRegistry)
+	repairClusterIPs := servicecontroller.NewRepair(c.ServiceClusterIPInterval, c.ServiceClient, c.EventClient, &c.ServiceClusterIPRange, c.ServiceClusterIPRegistry)
+	repairNodePorts := portallocatorcontroller.NewRepair(c.ServiceNodePortInterval, c.ServiceClient, c.EventClient, c.ServiceNodePortRange, c.ServiceNodePortRegistry)
 
 	// run all of the controllers once prior to returning from Start.
 	if err := repairClusterIPs.RunOnce(); err != nil {

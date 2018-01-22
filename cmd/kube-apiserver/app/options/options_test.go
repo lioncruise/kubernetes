@@ -28,9 +28,10 @@ import (
 	apiserveroptions "k8s.io/apiserver/pkg/server/options"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
 	utilconfig "k8s.io/apiserver/pkg/util/flag"
+	auditwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kubeoptions "k8s.io/kubernetes/pkg/kubeapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/master/reconcilers"
@@ -46,7 +47,6 @@ func TestAddFlags(t *testing.T) {
 		"--admission-control-config-file=/admission-control-config",
 		"--advertise-address=192.168.10.10",
 		"--allow-privileged=false",
-		"--alpha-endpoint-reconciler-type=" + string(reconcilers.MasterCountReconcilerType),
 		"--anonymous-auth=false",
 		"--apiserver-count=5",
 		"--audit-log-maxage=11",
@@ -56,6 +56,12 @@ func TestAddFlags(t *testing.T) {
 		"--audit-policy-file=/policy",
 		"--audit-webhook-config-file=/webhook-config",
 		"--audit-webhook-mode=blocking",
+		"--audit-webhook-batch-buffer-size=42",
+		"--audit-webhook-batch-max-size=43",
+		"--audit-webhook-batch-max-wait=1s",
+		"--audit-webhook-batch-throttle-qps=43.5",
+		"--audit-webhook-batch-throttle-burst=44",
+		"--audit-webhook-batch-initial-backoff=2s",
 		"--authentication-token-webhook-cache-ttl=3m",
 		"--authentication-token-webhook-config-file=/token-webhook-config",
 		"--authorization-mode=AlwaysDeny",
@@ -72,6 +78,7 @@ func TestAddFlags(t *testing.T) {
 		"--enable-aggregator-routing=true",
 		"--enable-logs-handler=false",
 		"--enable-swagger-ui=true",
+		"--endpoint-reconciler-type=" + string(reconcilers.MasterCountReconcilerType),
 		"--etcd-quorum-read=false",
 		"--etcd-keyfile=/var/run/kubernetes/etcd.key",
 		"--etcd-certfile=/var/run/kubernetes/etcdce.crt",
@@ -103,12 +110,14 @@ func TestAddFlags(t *testing.T) {
 			RequestTimeout:              time.Duration(2) * time.Minute,
 			MinRequestTimeout:           1800,
 		},
-		Admission: &apiserveroptions.AdmissionOptions{
-			RecommendedPluginOrder: []string{"NamespaceLifecycle", "Initializers"},
-			DefaultOffPlugins:      []string{"Initializers"},
-			PluginNames:            []string{"AlwaysDeny"},
-			ConfigFile:             "/admission-control-config",
-			Plugins:                s.Admission.Plugins,
+		Admission: &kubeoptions.AdmissionOptions{
+			PluginNames: []string{"AlwaysDeny"},
+			GenericAdmission: &apiserveroptions.AdmissionOptions{
+				RecommendedPluginOrder: s.Admission.GenericAdmission.RecommendedPluginOrder,
+				DefaultOffPlugins:      s.Admission.GenericAdmission.DefaultOffPlugins,
+				ConfigFile:             "/admission-control-config",
+				Plugins:                s.Admission.GenericAdmission.Plugins,
+			},
 		},
 		Etcd: &apiserveroptions.EtcdOptions{
 			StorageConfig: storagebackend.Config{
@@ -170,6 +179,14 @@ func TestAddFlags(t *testing.T) {
 			WebhookOptions: apiserveroptions.AuditWebhookOptions{
 				Mode:       "blocking",
 				ConfigFile: "/webhook-config",
+				BatchConfig: auditwebhook.BatchBackendConfig{
+					BufferSize:     42,
+					MaxBatchSize:   43,
+					MaxBatchWait:   1 * time.Second,
+					ThrottleQPS:    43.5,
+					ThrottleBurst:  44,
+					InitialBackoff: 2 * time.Second,
+				},
 			},
 			PolicyFile: "/policy",
 		},

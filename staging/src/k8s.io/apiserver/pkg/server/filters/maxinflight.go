@@ -24,7 +24,6 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/endpoints/metrics"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/golang/glog"
 )
@@ -46,7 +45,7 @@ func WithMaxInFlightLimit(
 	handler http.Handler,
 	nonMutatingLimit int,
 	mutatingLimit int,
-	requestContextMapper genericapirequest.RequestContextMapper,
+	requestContextMapper apirequest.RequestContextMapper,
 	longRunningRequestCheck apirequest.LongRunningRequestCheck,
 ) http.Handler {
 	if nonMutatingLimit == 0 && mutatingLimit == 0 {
@@ -80,7 +79,8 @@ func WithMaxInFlightLimit(
 		}
 
 		var c chan bool
-		if !nonMutatingRequestVerbs.Has(requestInfo.Verb) {
+		isMutatingRequest := !nonMutatingRequestVerbs.Has(requestInfo.Verb)
+		if isMutatingRequest {
 			c = mutatingChan
 		} else {
 			c = nonMutatingChan
@@ -96,6 +96,12 @@ func WithMaxInFlightLimit(
 				handler.ServeHTTP(w, r)
 
 			default:
+				// We need to split this data between buckets used for throttling.
+				if isMutatingRequest {
+					metrics.DroppedRequests.WithLabelValues(metrics.MutatingKind).Inc()
+				} else {
+					metrics.DroppedRequests.WithLabelValues(metrics.ReadOnlyKind).Inc()
+				}
 				// at this point we're about to return a 429, BUT not all actors should be rate limited.  A system:master is so powerful
 				// that he should always get an answer.  It's a super-admin or a loopback connection.
 				if currUser, ok := apirequest.UserFrom(ctx); ok {
